@@ -22,3 +22,5 @@ void fieldRemove(CLI::App* app);
 void dMRI_cmd(CLI::App* app);
 void dMRI_recon(CLI::App* app);
 void dMRI_recon_transhi2015(CLI::App* app);
+
+void prepNeonatalSurf(CLI::App* app);

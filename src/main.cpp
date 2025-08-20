@@ -34,6 +34,7 @@ int main(int argc, char *argv[]) {
     fieldImport(app.add_subcommand("fieldImport", ""));
     fieldRemove(app.add_subcommand("fieldRemove", ""));
     dMRI_cmd(app.add_subcommand("dMRI", ""));
+    prepNeonatalSurf(app.add_subcommand("prepNeonatalSurf", ""));
 
     std::vector<std::string> subcommands = {
         "info", 
@@ -51,7 +52,8 @@ int main(int argc, char *argv[]) {
         "fieldExport",
         "fieldImport",
         "fieldRemove",
-        "dMRI"};
+        "dMRI",
+        "prepNeonatalSurf"};
 
     const std::string dMRI_name          = "dMRI";
     const std::string recon_name         = "recon";
