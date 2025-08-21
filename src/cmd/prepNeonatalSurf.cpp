@@ -53,7 +53,33 @@ void run_prep_neonatal_surf()
         cerImg.data[n] = (asegImg.data[n]==91 || asegImg.data[n]==93) ? 1 : 0; 
     }
     Surface cer = fsAseg2Surf(cerImg,1);
-    
+
+    Image<int> bstImg;
+    bstImg.createFromTemplate(asegImg, true);
+    for (int n = 0; n < asegImg.numel; n++) {
+        bstImg.data[n] = (asegImg.data[n] == 170) ? 1 : 0;
+    }
+    Surface bst = fsAseg2Surf(bstImg, 1);
+
+    Image<int> sgmImg;
+    sgmImg.createFromTemplate(asegImg, true);
+    for (int n = 0; n < asegImg.numel; n++) {
+        sgmImg.data[n] = (
+            asegImg.data[n]==9 || asegImg.data[n]==11 || 
+            asegImg.data[n]==13 || asegImg.data[n]==28 ||
+            asegImg.data[n]==48 || asegImg.data[n]==50 ||
+            asegImg.data[n]==52 || asegImg.data[n]==60 ) ? 1 : 0; 
+    }
+    Surface sgm = fsAseg2Surf(sgmImg, 1);
+
+    Image<int> csfImg;
+    csfImg.createFromTemplate(asegImg, true);
+    for (int n = 0; n < asegImg.numel; n++) {
+        csfImg.data[n] = (
+            asegImg.data[n]==4 || asegImg.data[n]==14 || 
+            asegImg.data[n]==15 || asegImg.data[n]==43 ) ? 1 : 0; 
+    }
+    Surface csf = fsAseg2Surf(csfImg, 1);
 
     /*  Option 2: First generate surfaces then combine
     Surface l_cer = fsAseg2Surf(cerImg,91);
@@ -63,7 +89,10 @@ void run_prep_neonatal_surf()
 
     makeFolder(outputFolder);
 
-    cer.write(outputFolder + "/cer.vtk");
+    cer.write(outputFolder + "/cer.vtk" );
+    bst.write(outputFolder + "/bst.vtk" );
+    sgm.write(outputFolder + "/sgm.vtk" );
+    csf.write(outputFolder + "/csf.vtk" );
 
     // Read the original ribbon data
     Image<int> ribbonOrig(mcribsFolder + "/mri/ribbon.mgz");
@@ -289,6 +318,26 @@ void run_prep_neonatal_surf()
 
     Surface r_gm_ribbon = surfGlueBoundaries(r_wm_open, r_gm_open);
     r_gm_ribbon.write(outputFolder + "/r_gm.vtk");
+
+
+    // For tractography
+
+    Surface wm = surfMerge(r_wm_closed, l_wm_closed);
+    Surface gm = surfMerge(r_gm_ribbon, l_gm_ribbon);
+    
+    Surface seed = surfMerge(wm, bst);
+    seed = surfMerge(seed, cer);
+    
+    Surface discard_seed = surfMerge(gm, sgm);
+    Surface req_end_inside = surfMerge(discard_seed, cer);
+    req_end_inside = surfMerge(req_end_inside, bst);
+
+    wm.write(outputFolder + "/wm.vtk");
+    gm.write(outputFolder + "/gm.vtk");
+
+    seed.write(outputFolder + "/seed.vtk");
+    discard_seed.write(outputFolder + "/discard_seed.vtk");
+    req_end_inside.write(outputFolder + "/req_end_inside.vtk");
 
     return;
 
