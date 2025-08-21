@@ -2,22 +2,6 @@
 
 using namespace NIBR;
 
-// COMBINED   0
-// L_WM       1
-// R_WM       2
-// L_GM       3
-// R_GM       4
-// L_SUB      5
-// R_SUB      6
-// CSF        7
-// L_VDC      8
-// R_VDC      9
-// CER_WM    10
-// CER_GM    11
-// BS        12
-// SPINE     13
-// CRAN      14
-
 namespace CMDARGS_PREP_NEONATAL_SURF {
     std::string ibeatFolder = "";
     std::string mcribsFolder= "";
@@ -43,114 +27,193 @@ void run_prep_neonatal_surf()
 
     parseCommon(numberOfThreads,verbose);
 
+    // Create the output folder
+    makeFolder(outputFolder);
+
+    // Read aparc+aseg.mgz
     Image<int> asegImg(mcribsFolder + "/mri/aparc+aseg.mgz");
     asegImg.read();
 
-    // Option 1: First combine labels and generate surface
+    // Read ribbon.mgz
+    Image<int> ribbon(mcribsFolder + "/mri/ribbon.mgz");
+    ribbon.read();
+
+    // Extract the GM ribbon only
+    Image<int8_t> gm_ribbon;
+    gm_ribbon.createFromTemplate(ribbon,true);
+    for (int n = 0; n < ribbon.numel; n++) {
+        gm_ribbon.data[n]  = (ribbon.data[n]==3 || ribbon.data[n]==42) ? 1 : 0;
+    }
+    imgDilate(gm_ribbon);
+    imgDilate(gm_ribbon);
+    gm_ribbon.setInterpolationMethod(NEAREST);
+    // gm_ribbon.write(outputFolder + "/ribbonThresh.nii.gz");
+
+    // Generate and save a tight background mask
+    disp(MSG_INFO,"Generating a tight background image");
+    Image<int8_t> background;
+    background.createFromTemplate(ribbon,true);
+    for (int n = 0; n < background.numel; n++) {
+        background.data[n]  = 
+            (   (ribbon.data[n] > 0) || 
+                (asegImg.data[n]==91 || asegImg.data[n]==93) ||
+                (asegImg.data[n]==170) )
+                ? 0 : 1;
+    }
+    background.write(outputFolder + "/background.nii.gz" );
+    disp(MSG_INFO,"background saved.");
+    
+
+    // For CER, first combine labels and generate surface
+    disp(MSG_INFO,"Generating cer surface");
     Image<int> cerImg;
     cerImg.createFromTemplate(asegImg,true);
     for (int n = 0; n < asegImg.numel; n++) {
         cerImg.data[n] = (asegImg.data[n]==91 || asegImg.data[n]==93) ? 1 : 0; 
     }
     Surface cer = fsAseg2Surf(cerImg,1);
+    cer.write(outputFolder + "/cer.vtk" );
+    disp(MSG_INFO,"cer saved.");
 
-    Image<int> bstImg;
-    bstImg.createFromTemplate(asegImg, true);
-    for (int n = 0; n < asegImg.numel; n++) {
-        bstImg.data[n] = (asegImg.data[n] == 170) ? 1 : 0;
-    }
-    Surface bst = fsAseg2Surf(bstImg, 1);
+    // BST surface
+    disp(MSG_INFO,"Generating bst surface");
+    Surface bst   = fsAseg2Surf(asegImg, 170);
+    bst.write(outputFolder + "/bst.vtk" );
+    disp(MSG_INFO,"bst saved.");
 
-    Image<int> sgmImg;
-    sgmImg.createFromTemplate(asegImg, true);
-    for (int n = 0; n < asegImg.numel; n++) {
-        sgmImg.data[n] = (
-            asegImg.data[n]==9 || asegImg.data[n]==11 || 
-            asegImg.data[n]==13 || asegImg.data[n]==28 ||
-            asegImg.data[n]==48 || asegImg.data[n]==50 ||
-            asegImg.data[n]==52 || asegImg.data[n]==60 ) ? 1 : 0; 
-    }
-    Surface sgm = fsAseg2Surf(sgmImg, 1);
+    // For SGM, first generate the surfaces and then combine them
+    disp(MSG_INFO,"Generating sgm surface");
+    Surface sgm = fsAseg2Surf(asegImg, 9);                              disp(MSG_INFO,"L THALAMUS done"); // L THALAMUS
+    Surface tmp = fsAseg2Surf(asegImg, 48); sgm = surfMerge(sgm,tmp);   disp(MSG_INFO,"R THALAMUS done"); // R THALAMUS
+    tmp = fsAseg2Surf(asegImg, 11);         sgm = surfMerge(sgm,tmp);   disp(MSG_INFO,"L CAUDATE done"); // L CAUDATE
+    tmp = fsAseg2Surf(asegImg, 50);         sgm = surfMerge(sgm,tmp);   disp(MSG_INFO,"R CAUDATE done"); // R CAUDATE
+    tmp = fsAseg2Surf(asegImg, 13);         sgm = surfMerge(sgm,tmp);   disp(MSG_INFO,"L PALLIDUM done"); // L PALLIDUM
+    tmp = fsAseg2Surf(asegImg, 52);         sgm = surfMerge(sgm,tmp);   disp(MSG_INFO,"R PALLIDUM done"); // R PALLIDUM
+    tmp = fsAseg2Surf(asegImg, 28);         sgm = surfMerge(sgm,tmp);   disp(MSG_INFO,"L VENTRAL DIENCEPHALON done"); // L VENTRAL DIENCEPHALON
+    tmp = fsAseg2Surf(asegImg, 60);         sgm = surfMerge(sgm,tmp);   disp(MSG_INFO,"R VENTRAL DIENCEPHALON done"); // R VENTRAL DIENCEPHALON
+    tmp = fsAseg2Surf(asegImg, 12);         sgm = surfMerge(sgm,tmp);   disp(MSG_INFO,"L PUTAMEN done"); // L PUTAMEN
+    tmp = fsAseg2Surf(asegImg, 51);         sgm = surfMerge(sgm,tmp);   disp(MSG_INFO,"R PUTAMEN done"); // R PUTAMEN
+    tmp = fsAseg2Surf(asegImg, 17);         sgm = surfMerge(sgm,tmp);   disp(MSG_INFO,"L HIPPOCAMPUS done"); // L HIPPOCAMPUS
+    tmp = fsAseg2Surf(asegImg, 53);         sgm = surfMerge(sgm,tmp);   disp(MSG_INFO,"R HIPPOCAMPUS done"); // R HIPPOCAMPUS
+    tmp = fsAseg2Surf(asegImg, 18);         sgm = surfMerge(sgm,tmp);   disp(MSG_INFO,"L AMYGDALA done"); // L AMYGDALA
+    tmp = fsAseg2Surf(asegImg, 54);         sgm = surfMerge(sgm,tmp);   disp(MSG_INFO,"R AMYGDALA done"); // R AMYGDALA
+    tmp = fsAseg2Surf(asegImg, 26);         sgm = surfMerge(sgm,tmp);   disp(MSG_INFO,"L ACCUMBENS done"); // L ACCUMBENS
+    tmp = fsAseg2Surf(asegImg, 58);         sgm = surfMerge(sgm,tmp);   disp(MSG_INFO,"R ACCUMBENS done"); // R ACCUMBENS
+    sgm.write(outputFolder + "/sgm.vtk" );
+    disp(MSG_INFO,"sgm saved.");
 
-    Image<int> csfImg;
+
+    // For CSF, we will first combine the labels, then generate the surface, which will not be a single connected component
+    disp(MSG_INFO,"Generating csf surface");
+    Surface csf;
+
+    Image<float> csfImg;
     csfImg.createFromTemplate(asegImg, true);
     for (int n = 0; n < asegImg.numel; n++) {
         csfImg.data[n] = (
-            asegImg.data[n]==4 || asegImg.data[n]==14 || 
-            asegImg.data[n]==15 || asegImg.data[n]==43 ) ? 1 : 0; 
+              asegImg.data[n]==4  ||                            // L LATERAL VENTRICLE
+              asegImg.data[n]==43 ||                            // R LATERAL VENTRICLE
+              asegImg.data[n]==14 ||                            // 3rd VENTRICLE
+              asegImg.data[n]==15 ||                            // 4rd VENTRICLE
+              (background.data[n] == 0 && asegImg.data[n]==24)  // CSF but that is only inside the brain mask
+              ) ? 1.0f : 0.0f; 
     }
-    Surface csf = fsAseg2Surf(csfImg, 1);
+    
+    for (int n = 0; n < 2; n++) {
+        imgDilate(csfImg,NIBR::CONN6);
+        imgErode (csfImg,NIBR::CONN6);
+    }
 
-    /*  Option 2: First generate surfaces then combine
-    Surface l_cer = fsAseg2Surf(cerImg,91);
-    Surface r_cer = fsAseg2Surf(cerImg,93);
-    Surface cer   = surfMerge(r_cer,l_cer);
-    */
+    if (!isosurface(&csfImg, 0.5, &csf)) {
+        disp(MSG_ERROR, "Failed to generate surface");
+        return;
+    }
 
-    makeFolder(outputFolder);
-
-    cer.write(outputFolder + "/cer.vtk" );
-    bst.write(outputFolder + "/bst.vtk" );
-    sgm.write(outputFolder + "/sgm.vtk" );
+    if (csf.nv > 0) csf = surfSmooth(csf,2);
+    float meanFaceArea = 0.25;
+    if (csf.nv > 0) csf.calcArea();
+    if (csf.nv > 0) csf = surfRemesh(csf,csf.area/meanFaceArea*0.5f,1,0);
+    
     csf.write(outputFolder + "/csf.vtk" );
+    disp(MSG_INFO,"csf saved.");
+    
+    // Read WM and GM surfaces
+    Surface l_wm_closed = Surface(ibeatFolder + "/T2-iso-skullstripped-rmcere-tissue.lh.InnerSurf.PhysicalSpace.vtk"); l_wm_closed.readMesh();
+    Surface l_gm_closed = Surface(ibeatFolder + "/T2-iso-skullstripped-rmcere-tissue.lh.OuterSurf.PhysicalSpace.vtk"); l_gm_closed.readMesh();
+    Surface r_wm_closed = Surface(ibeatFolder + "/T2-iso-skullstripped-rmcere-tissue.rh.InnerSurf.PhysicalSpace.vtk"); r_wm_closed.readMesh();
+    Surface r_gm_closed = Surface(ibeatFolder + "/T2-iso-skullstripped-rmcere-tissue.rh.OuterSurf.PhysicalSpace.vtk"); r_gm_closed.readMesh();
 
-    // Read the original ribbon data
-    Image<int> ribbonOrig(mcribsFolder + "/mri/ribbon.mgz");
-    ribbonOrig.read();
+    l_wm_closed.write(outputFolder + "/l_wm.vtk");
+    r_wm_closed.write(outputFolder + "/r_wm.vtk");
 
-    // Threshold for faster interplolation
-    Image<int8_t> ribbon;
-    ribbon.createFromTemplate(ribbonOrig,true);
-    for (int n = 0; n < ribbonOrig.numel; n++) {
-        ribbon.data[n] = (ribbonOrig.data[n]==3 || ribbonOrig.data[n]==42) ? 1 : 0; 
-    }
-    imgDilate(ribbon);
-    imgDilate(ribbon);
-    ribbon.setInterpolationMethod(NEAREST);
-    // ribbon.write(outputFolder + "/ribbonThresh.nii.gz");
+    auto genGMribbon = [&] (Surface ipsi_wm_closed, Surface ipsi_gm_closed, Surface contra_wm_closed) -> Surface {
 
-    /*
-    Surface r_gm_closed = Surface(ibeatFolder + "/T2-iso-skullstripped-rmcere-tissue.rh.OuterSurf.PhysicalSpace.vtk");
-    r_gm_closed.readMesh();
-    Surface l_gm_closed = Surface(ibeatFolder + "/T2-iso-skullstripped-rmcere-tissue.lh.OuterSurf.PhysicalSpace.vtk");
-    l_gm_closed.readMesh();
+        // Calculate Euclidean distance to the contra lateral wm
+        Image<float> edt;
+        edt.createFromTemplate(ribbon,true);
+        mapSurface2Image(&contra_wm_closed, &edt, 0, NULL, NULL, EDT);
 
-    Surface cortex_gm = surfMerge(r_gm_closed,l_gm_closed);
-    cortex_gm.write(outputFolder + "/cortex_gm.vtk");
+        // Compute distance for all vertices
+        std::vector<int> midLine;
+        midLine.reserve(ipsi_wm_closed.nv);
 
-    Image<float> edt_gm;
-    edt_gm.createFromTemplate(ribbonOrig,true);
-    mapSurface2Image(&cortex_gm, &edt_gm, 0, NULL, NULL, EDT);
-    edt_gm.write(outputFolder + "/edt_gm.nii.gz");
+        for (int n = 0; n < ipsi_wm_closed.nv; n++) {
+            float val = std::fabs(edt(ipsi_wm_closed.vertices[n]));
+            midLine.push_back(val < 1.0f);
+        }
 
+        SurfaceField midLineMask = ipsi_wm_closed.makeVertField("midLineMask", midLine);
 
+        Surface ipsi_wm_open;
+        removeVertices(&ipsi_wm_open,&ipsi_wm_closed, &midLineMask);
+        ipsi_wm_open = surfMakeItSingleOpen(ipsi_wm_open);
 
-    Surface r_wm_closed = Surface(ibeatFolder + "/T2-iso-skullstripped-rmcere-tissue.rh.InnerSurf.PhysicalSpace.vtk");
-    r_wm_closed.readMesh();
-    Surface r_wm_closed_inf = surfMoveVerticesAlongNormal(r_wm_closed, 2);
+        Surface ipsi_gm_open;
+        removeVertices(&ipsi_gm_open,&ipsi_gm_closed, &midLineMask);
+        ipsi_gm_open = surfMakeItSingleOpen(ipsi_gm_open);
 
-    Surface l_wm_closed = Surface(ibeatFolder + "/T2-iso-skullstripped-rmcere-tissue.lh.InnerSurf.PhysicalSpace.vtk");
-    l_wm_closed.readMesh();
-    Surface l_wm_closed_inf = surfMoveVerticesAlongNormal(l_wm_closed, 2);
+        Surface gm_ribbon = surfGlueBoundaries(ipsi_wm_open, ipsi_gm_open);
+        gm_ribbon = surfMakeItSingleClosed(gm_ribbon);
+        gm_ribbon = surfRemesh(gm_ribbon,gm_ribbon.nv);
+        gm_ribbon = surfMakeItSingleClosed(gm_ribbon);
 
-    Surface cortex_wm = surfMerge(r_wm_closed_inf,l_wm_closed_inf);
-    cortex_wm.write(outputFolder + "/cortex_wm.vtk");
+        return gm_ribbon;
 
-    Image<float> edt_wm;
-    edt_wm.createFromTemplate(ribbonOrig,true);
-    mapSurface2Image(&cortex_wm, &edt_wm, 0, NULL, NULL, EDT);
-    edt_wm.write(outputFolder + "/edt_wm.nii.gz");
+    };
 
-
-    for (int n = 0; n < ribbonOrig.numel; n++) {
-        ribbon.data[n] = (edt_wm.data[n] < 0 && edt_gm.data[n] > 0) ? 1 : 0; 
-    }
-    ribbon.write(outputFolder + "/ribbonThreshSurf.nii.gz");
-    */
+    Surface l_gm_ribbon = genGMribbon(l_wm_closed,l_gm_closed,r_wm_closed); l_gm_ribbon.write(outputFolder + "/l_gm.vtk");
+    Surface r_gm_ribbon = genGMribbon(r_wm_closed,r_gm_closed,l_wm_closed); r_gm_ribbon.write(outputFolder + "/r_gm.vtk");
 
 
+
+    // Combined surfaces for tractography
+    Surface wm = surfMerge(r_wm_closed, l_wm_closed);
+    Surface gm = surfMerge(r_gm_ribbon, l_gm_ribbon);
+    
+    // SEED
+    disp(MSG_INFO,"Generating a combined seed surface");
+    Surface seed = surfMerge(wm, bst);
+    seed         = surfMerge(seed, cer);
+    seed.write(outputFolder + "/seed.vtk");
+    disp(MSG_INFO,"seed saved.");
+
+    // REQUIRE_END_INSIDE
+    disp(MSG_INFO,"Generating a combined require_end_sinside surface");
+    Surface req_end_inside  = surfMerge(gm, sgm);
+    req_end_inside          = surfMerge(req_end_inside, cer);
+    req_end_inside          = surfMerge(req_end_inside, bst);
+    req_end_inside.write(outputFolder + "/require_end_inside.vtk");
+    disp(MSG_INFO,"require_end_inside saved.");
+
+    wm.write(outputFolder + "/wm.vtk");
+    gm.write(outputFolder + "/gm.vtk");
+
+    return;
 
     
+    /*
+
+
     // ------
     // Create neighboring spheres in physical space
     // We will create 3 shells, with 1 mm, 2 mm, and 3 mm radii from the center, i.e. vertex
@@ -178,77 +241,54 @@ void run_prep_neonatal_surf()
         nei.push_back(p);
     }
     // ------
-    
 
-    
-    // WM surface
-    Surface l_wm_closed = Surface(ibeatFolder + "/T2-iso-skullstripped-rmcere-tissue.lh.InnerSurf.PhysicalSpace.vtk");
-    l_wm_closed.readMesh();
-    l_wm_closed.write(outputFolder + "/l_wm.vtk");
-    
-    Surface r_wm_closed = Surface(ibeatFolder + "/T2-iso-skullstripped-rmcere-tissue.rh.InnerSurf.PhysicalSpace.vtk");
-    r_wm_closed.readMesh();
-    r_wm_closed.write(outputFolder + "/r_wm.vtk");
+    // Calculate distance images
+    Image<float> edt_l_gm;
+    edt_l_gm.createFromTemplate(ribbon,true);
+    mapSurface2Image(&l_gm_closed, &edt_l_gm, 0, NULL, NULL, EDT);
+
+    Image<float> edt_r_gm;
+    edt_r_gm.createFromTemplate(ribbon,true);
+    mapSurface2Image(&r_gm_closed, &edt_r_gm, 0, NULL, NULL, EDT);
 
 
-    // Create GM ribbons
-
-    Surface l_gm_closed = Surface(ibeatFolder + "/T2-iso-skullstripped-rmcere-tissue.lh.OuterSurf.PhysicalSpace.vtk");
-    l_gm_closed.readMesh();
-
-    // l_wm_closed.calcNormalsOfVertices();
-    // l_wm_closed.write(outputFolder + "/l_wm_closed.vtk");
-
+    // Compute midline distance
     std::vector<int> l_midLine;
     l_midLine.reserve(l_wm_closed.nv);
-
-    // std::vector<int> midIdx;
 
     for (int n = 0; n < l_wm_closed.nv; n++) {
 
         bool isMidLine = true;
-        
-        // for (float d = -3; d < 3; d += 0.1) {
+
+        float val = std::fabs(edt_r_gm(l_wm_closed.vertices[n]));
+        isMidLine = (val < 1.0f);
+
+        // for (const auto& p : nei) {
         //     float r[3];
-        //     r[0] = l_wm_closed.vertices[n][0] + l_wm_closed.normalsOfVertices[n][0] * d;
-        //     r[1] = l_wm_closed.vertices[n][1] + l_wm_closed.normalsOfVertices[n][1] * d;
-        //     r[2] = l_wm_closed.vertices[n][2] + l_wm_closed.normalsOfVertices[n][2] * d;
-        //     float val = ribbon(r);
+        //     r[0] = p[0] + l_wm_closed.vertices[n][0];
+        //     r[1] = p[1] + l_wm_closed.vertices[n][1];
+        //     r[2] = p[2] + l_wm_closed.vertices[n][2];
+        //     float val = gm_ribbon(r);
         //     if (val > EPS6) {
         //         isMidLine = false;
         //         break;
         //     }
         // }
 
-        for (const auto& p : nei) {
-            float r[3];
-            r[0] = p[0] + l_wm_closed.vertices[n][0];
-            r[1] = p[1] + l_wm_closed.vertices[n][1];
-            r[2] = p[2] + l_wm_closed.vertices[n][2];
-            float val = ribbon(r);
-            if (val > EPS6) {
-                isMidLine = false;
-                break;
-            }
-        }
-
-        if (isMidLine) {
-            for (const auto& p : nei) {
-                float r[3];
-                r[0] = p[0] + l_gm_closed.vertices[n][0];
-                r[1] = p[1] + l_gm_closed.vertices[n][1];
-                r[2] = p[2] + l_gm_closed.vertices[n][2];
-                float val = ribbon(r);
-                if (val > EPS6) {
-                    isMidLine = false;
-                    break;
-                }
-            }
-        }
-
         // if (isMidLine) {
-        //     midIdx.push_back(n);
+        //     for (const auto& p : nei) {
+        //         float r[3];
+        //         r[0] = p[0] + l_gm_closed.vertices[n][0];
+        //         r[1] = p[1] + l_gm_closed.vertices[n][1];
+        //         r[2] = p[2] + l_gm_closed.vertices[n][2];
+        //         float val = gm_ribbon(r);
+        //         if (val > EPS6) {
+        //             isMidLine = false;
+        //             break;
+        //         }
+        //     }
         // }
+
         l_midLine.push_back(int(isMidLine));
     }
 
@@ -256,19 +296,22 @@ void run_prep_neonatal_surf()
 
     Surface l_wm_open;
     removeVertices(&l_wm_open,&l_wm_closed, &l_midLineMask);
-    // l_wm_open.write(outputFolder + "/l_wm_open.vtk");
+    l_wm_open.write(outputFolder + "/l_wm_open.vtk");
 
     Surface l_gm_open;
     removeVertices(&l_gm_open,&l_gm_closed, &l_midLineMask);
     // l_gm_open.write(outputFolder + "/l_gm_open.vtk");
 
     Surface l_gm_ribbon = surfGlueBoundaries(l_wm_open, l_gm_open);
+    l_gm_ribbon = surfMakeItSingleClosed(l_gm_ribbon);
+    l_gm_ribbon = surfRemesh(l_gm_ribbon,l_gm_ribbon.nv);
+    l_gm_ribbon = surfMakeItSingleClosed(l_gm_ribbon);
     l_gm_ribbon.write(outputFolder + "/l_gm.vtk");
+    
 
 
     //
-    Surface r_gm_closed = Surface(ibeatFolder + "/T2-iso-skullstripped-rmcere-tissue.rh.OuterSurf.PhysicalSpace.vtk");
-    r_gm_closed.readMesh();
+    
 
     std::vector<int> r_midLine;
     r_midLine.reserve(r_wm_closed.nv);
@@ -277,31 +320,34 @@ void run_prep_neonatal_surf()
 
         bool isMidLine = true;
 
-        for (const auto& p : nei) {
-            float r[3];
-            r[0] = p[0] + r_wm_closed.vertices[n][0];
-            r[1] = p[1] + r_wm_closed.vertices[n][1];
-            r[2] = p[2] + r_wm_closed.vertices[n][2];
-            float val = ribbon(r);
-            if (val > EPS6) {
-                isMidLine = false;
-                break;
-            }
-        }
+        float val = std::fabs(edt_l_gm(r_wm_closed.vertices[n]));
+        isMidLine = (val < 1.0f);
 
-        if (isMidLine) {
-            for (const auto& p : nei) {
-                float r[3];
-                r[0] = p[0] + r_gm_closed.vertices[n][0];
-                r[1] = p[1] + r_gm_closed.vertices[n][1];
-                r[2] = p[2] + r_gm_closed.vertices[n][2];
-                float val = ribbon(r);
-                if (val > EPS6) {
-                    isMidLine = false;
-                    break;
-                }
-            }
-        }
+        // for (const auto& p : nei) {
+        //     float r[3];
+        //     r[0] = p[0] + r_wm_closed.vertices[n][0];
+        //     r[1] = p[1] + r_wm_closed.vertices[n][1];
+        //     r[2] = p[2] + r_wm_closed.vertices[n][2];
+        //     float val = gm_ribbon(r);
+        //     if (val > EPS6) {
+        //         isMidLine = false;
+        //         break;
+        //     }
+        // }
+
+        // if (isMidLine) {
+        //     for (const auto& p : nei) {
+        //         float r[3];
+        //         r[0] = p[0] + r_gm_closed.vertices[n][0];
+        //         r[1] = p[1] + r_gm_closed.vertices[n][1];
+        //         r[2] = p[2] + r_gm_closed.vertices[n][2];
+        //         float val = gm_ribbon(r);
+        //         if (val > EPS6) {
+        //             isMidLine = false;
+        //             break;
+        //         }
+        //     }
+        // }
 
         r_midLine.push_back(int(isMidLine));
     }
@@ -310,36 +356,21 @@ void run_prep_neonatal_surf()
 
     Surface r_wm_open;
     removeVertices(&r_wm_open,&r_wm_closed, &r_midLineMask);
-    // r_wm_open.write(outputFolder + "/r_wm_open.vtk");
+    r_wm_open.write(outputFolder + "/r_wm_open.vtk");
 
     Surface r_gm_open;
     removeVertices(&r_gm_open,&r_gm_closed, &r_midLineMask);
     // r_gm_open.write(outputFolder + "/r_gm_open.vtk");
 
     Surface r_gm_ribbon = surfGlueBoundaries(r_wm_open, r_gm_open);
+    r_gm_ribbon = surfMakeItSingleClosed(r_gm_ribbon);
+    r_gm_ribbon = surfRemesh(r_gm_ribbon,r_gm_ribbon.nv);
+    r_gm_ribbon = surfMakeItSingleClosed(r_gm_ribbon);
+
     r_gm_ribbon.write(outputFolder + "/r_gm.vtk");
 
 
-    // For tractography
-
-    Surface wm = surfMerge(r_wm_closed, l_wm_closed);
-    Surface gm = surfMerge(r_gm_ribbon, l_gm_ribbon);
-    
-    Surface seed = surfMerge(wm, bst);
-    seed = surfMerge(seed, cer);
-    
-    Surface discard_seed = surfMerge(gm, sgm);
-    Surface req_end_inside = surfMerge(discard_seed, cer);
-    req_end_inside = surfMerge(req_end_inside, bst);
-
-    wm.write(outputFolder + "/wm.vtk");
-    gm.write(outputFolder + "/gm.vtk");
-
-    seed.write(outputFolder + "/seed.vtk");
-    discard_seed.write(outputFolder + "/discard_seed.vtk");
-    req_end_inside.write(outputFolder + "/req_end_inside.vtk");
-
-    return;
+    */
 
 }
 
