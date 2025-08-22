@@ -84,28 +84,30 @@ void run_prep_neonatal_surf()
     // For SGM, first generate the surfaces and then combine them
     disp(MSG_INFO,"Generating sgm surface");
     Surface sgm_left = fsAseg2Surf(asegImg, 9);         disp(MSG_INFO,"L THALAMUS done");
-    Surface tmp      = fsAseg2Surf(asegImg, 11);        sgm_left = surfMerge(sgm_left, tmp); disp(MSG_INFO,"L CAUDATE done");
-    tmp              = fsAseg2Surf(asegImg, 13);        sgm_left = surfMerge(sgm_left, tmp); disp(MSG_INFO,"L PALLIDUM done");
-    tmp              = fsAseg2Surf(asegImg, 28);        sgm_left = surfMerge(sgm_left, tmp); disp(MSG_INFO,"L VENTRAL DIENCEPHALON done");
-    tmp              = fsAseg2Surf(asegImg, 12);        sgm_left = surfMerge(sgm_left, tmp); disp(MSG_INFO,"L PUTAMEN done");
-    tmp              = fsAseg2Surf(asegImg, 17);        sgm_left = surfMerge(sgm_left, tmp); disp(MSG_INFO,"L HIPPOCAMPUS done");
-    tmp              = fsAseg2Surf(asegImg, 18);        sgm_left = surfMerge(sgm_left, tmp); disp(MSG_INFO,"L AMYGDALA done");
-    tmp              = fsAseg2Surf(asegImg, 26);        sgm_left = surfMerge(sgm_left, tmp); disp(MSG_INFO,"L ACCUMBENS done");
+    Surface tmp      = fsAseg2Surf(asegImg, 11);        sgm_left = surfMerge(sgm_left, tmp);     disp(MSG_INFO,"L CAUDATE done");
+    tmp              = fsAseg2Surf(asegImg, 13);        sgm_left = surfMerge(sgm_left, tmp);     disp(MSG_INFO,"L PALLIDUM done");
+    tmp              = fsAseg2Surf(asegImg, 12);        sgm_left = surfMerge(sgm_left, tmp);     disp(MSG_INFO,"L PUTAMEN done");
+    tmp              = fsAseg2Surf(asegImg, 17);        sgm_left = surfMerge(sgm_left, tmp);     disp(MSG_INFO,"L HIPPOCAMPUS done");
+    tmp              = fsAseg2Surf(asegImg, 18);        sgm_left = surfMerge(sgm_left, tmp);     disp(MSG_INFO,"L AMYGDALA done");
+    tmp              = fsAseg2Surf(asegImg, 26);        sgm_left = surfMerge(sgm_left, tmp);     disp(MSG_INFO,"L ACCUMBENS done");
+    Surface l_vdc    = fsAseg2Surf(asegImg, 28);        sgm_left = surfMerge(sgm_left, l_vdc);   disp(MSG_INFO,"L VENTRAL DIENCEPHALON done");
 
     sgm_left.write(outputFolder + "/sgm_left.vtk");
     disp(MSG_INFO,"sgm_left saved.");
 
     Surface sgm_right = fsAseg2Surf(asegImg, 48);       disp(MSG_INFO,"R THALAMUS done");
-    tmp               = fsAseg2Surf(asegImg, 50);       sgm_right = surfMerge(sgm_right, tmp); disp(MSG_INFO,"R CAUDATE done");
-    tmp               = fsAseg2Surf(asegImg, 52);       sgm_right = surfMerge(sgm_right, tmp); disp(MSG_INFO,"R PALLIDUM done");
-    tmp               = fsAseg2Surf(asegImg, 60);       sgm_right = surfMerge(sgm_right, tmp); disp(MSG_INFO,"R VENTRAL DIENCEPHALON done");
-    tmp               = fsAseg2Surf(asegImg, 51);       sgm_right = surfMerge(sgm_right, tmp); disp(MSG_INFO,"R PUTAMEN done");
-    tmp               = fsAseg2Surf(asegImg, 53);       sgm_right = surfMerge(sgm_right, tmp); disp(MSG_INFO,"R HIPPOCAMPUS done");
-    tmp               = fsAseg2Surf(asegImg, 54);       sgm_right = surfMerge(sgm_right, tmp); disp(MSG_INFO,"R AMYGDALA done");
-    tmp               = fsAseg2Surf(asegImg, 58);       sgm_right = surfMerge(sgm_right, tmp); disp(MSG_INFO,"R ACCUMBENS done");
+    tmp               = fsAseg2Surf(asegImg, 50);       sgm_right = surfMerge(sgm_right, tmp);   disp(MSG_INFO,"R CAUDATE done");
+    tmp               = fsAseg2Surf(asegImg, 52);       sgm_right = surfMerge(sgm_right, tmp);   disp(MSG_INFO,"R PALLIDUM done");
+    tmp               = fsAseg2Surf(asegImg, 51);       sgm_right = surfMerge(sgm_right, tmp);   disp(MSG_INFO,"R PUTAMEN done");
+    tmp               = fsAseg2Surf(asegImg, 53);       sgm_right = surfMerge(sgm_right, tmp);   disp(MSG_INFO,"R HIPPOCAMPUS done");
+    tmp               = fsAseg2Surf(asegImg, 54);       sgm_right = surfMerge(sgm_right, tmp);   disp(MSG_INFO,"R AMYGDALA done");
+    tmp               = fsAseg2Surf(asegImg, 58);       sgm_right = surfMerge(sgm_right, tmp);   disp(MSG_INFO,"R ACCUMBENS done");
+    Surface r_vdc     = fsAseg2Surf(asegImg, 60);       sgm_right = surfMerge(sgm_right, r_vdc); disp(MSG_INFO,"R VENTRAL DIENCEPHALON done");
 
     sgm_right.write(outputFolder + "/sgm_right.vtk");
     disp(MSG_INFO,"sgm_right saved.");
+
+    Surface vdc = surfMerge(l_vdc, r_vdc);
 
     Surface sgm = surfMerge(sgm_left, sgm_right);
     sgm.write(outputFolder + "/sgm.vtk");
@@ -154,20 +156,83 @@ void run_prep_neonatal_surf()
     l_wm_closed.write(outputFolder + "/l_wm.vtk");
     r_wm_closed.write(outputFolder + "/r_wm.vtk");
 
+    // auto prepSurf = [&] (Surface& surfToPrep) {
+    //     surfToPrep.enablePointCheck(2.0f);
+    //     surfToPrep.prepIglAABBTree();
+    //     if (surfToPrep.centersOfFaces==NULL) surfToPrep.calcCentersOfFaces();
+    //     if (surfToPrep.normalsOfFaces==NULL) surfToPrep.calcNormalsOfFaces();
+    //     if (surfToPrep.triangleEdge1 ==NULL) surfToPrep.calcTriangleVectors();
+    // };
+
+    // prepSurf(l_wm_closed);
+    // prepSurf(l_gm_closed);
+    // prepSurf(r_wm_closed);
+    // prepSurf(r_gm_closed);
+    // prepSurf(bst);
+    // prepSurf(sgm);
+
+    Image<float> edt_bst;
+    edt_bst.createFromTemplate(ribbon,true);
+    mapSurface2Image(&bst, &edt_bst, 0, NULL, NULL, EDT);
+
+    Image<float> edt_vdc;
+    edt_vdc.createFromTemplate(ribbon,true);
+    mapSurface2Image(&vdc, &edt_vdc, 0, NULL, NULL, EDT);
+
+
     auto genGMribbon = [&] (Surface ipsi_wm_closed, Surface ipsi_gm_closed, Surface contra_wm_closed) -> Surface {
 
         // Calculate Euclidean distance to the contra lateral wm
-        Image<float> edt;
-        edt.createFromTemplate(ribbon,true);
-        mapSurface2Image(&contra_wm_closed, &edt, 0, NULL, NULL, EDT);
+        Image<float> edt_contra_wm;
+        edt_contra_wm.createFromTemplate(ribbon,true);
+        mapSurface2Image(&contra_wm_closed, &edt_contra_wm, 0, NULL, NULL, EDT);
 
         // Compute distance for all vertices
         std::vector<int> midLine;
         midLine.reserve(ipsi_wm_closed.nv);
 
         for (int n = 0; n < ipsi_wm_closed.nv; n++) {
-            float val = std::fabs(edt(ipsi_wm_closed.vertices[n]));
-            midLine.push_back(val < 1.0f);
+
+            // // float d_ipsi_wm_2_contra_wm = std::fabs(edt_contra_wm(ipsi_wm_closed.vertices[n]));
+            // float d_ipsi_wm_2_contra_wm = contra_wm_closed.squaredDistToPoint(ipsi_wm_closed.vertices[n]);
+            // if (d_ipsi_wm_2_contra_wm < 1.0f) {
+            //     midLine.push_back(true);
+            //     continue;
+            // }
+
+            // // float d_ipsi_gm_2_bst = std::fabs(edt_bst(ipsi_gm_closed.vertices[n]));
+            // float d_ipsi_gm_2_bst = bst.squaredDistToPoint(ipsi_gm_closed.vertices[n]);
+            // if (d_ipsi_gm_2_bst < 1.0f) {
+            //     midLine.push_back(true);
+            //     continue;
+            // }
+
+            // // float d_ipsi_gm_2_sgm = std::fabs(edt_sgm(ipsi_gm_closed.vertices[n]));
+            // float d_ipsi_gm_2_sgm = sgm.squaredDistToPoint(ipsi_gm_closed.vertices[n]);
+            // if (d_ipsi_gm_2_sgm < 1.0f) {
+            //     midLine.push_back(true);
+            //     continue;
+            // }
+            
+            float d_ipsi_wm_2_contra_wm = std::fabs(edt_contra_wm(ipsi_wm_closed.vertices[n]));
+            if (d_ipsi_wm_2_contra_wm < 1.0f) {
+                midLine.push_back(true);
+                continue;
+            }
+
+            float d_ipsi_gm_2_bst = std::fabs(edt_bst(ipsi_gm_closed.vertices[n]));
+            if (d_ipsi_gm_2_bst < 1.0f) {
+                midLine.push_back(true);
+                continue;
+            }
+
+            float d_ipsi_wm_2_vdc = std::fabs(edt_vdc(ipsi_wm_closed.vertices[n]));
+            if (d_ipsi_wm_2_vdc < 1.0f) {
+                midLine.push_back(true);
+                continue;
+            }
+
+            midLine.push_back(false);            
         }
 
         SurfaceField midLineMask = ipsi_wm_closed.makeVertField("midLineMask", midLine);
