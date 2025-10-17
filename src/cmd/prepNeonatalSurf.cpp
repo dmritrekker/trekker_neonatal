@@ -34,6 +34,10 @@ void run_prep_neonatal_surf()
     Image<int> asegImg(mcribsFolder + "/mri/aparc+aseg.mgz");
     asegImg.read();
 
+    // Read volumetric labels
+    Image<int> labelsImg(mcribsFolder + "/mri/mcrib_labels.nii.gz");
+    labelsImg.read();
+
     // Read ribbon.mgz
     Image<int> ribbon(mcribsFolder + "/mri/ribbon.mgz");
     ribbon.read();
@@ -83,25 +87,26 @@ void run_prep_neonatal_surf()
 
     // For SGM, first generate the surfaces and then combine them
     disp(MSG_INFO,"Generating sgm surface");
-    Surface sgm_left = fsAseg2Surf(asegImg, 9);         disp(MSG_INFO,"L THALAMUS done");
-    Surface tmp      = fsAseg2Surf(asegImg, 11);        sgm_left = surfMerge(sgm_left, tmp);     disp(MSG_INFO,"L CAUDATE done");
-    tmp              = fsAseg2Surf(asegImg, 13);        sgm_left = surfMerge(sgm_left, tmp);     disp(MSG_INFO,"L PALLIDUM done");
-    tmp              = fsAseg2Surf(asegImg, 12);        sgm_left = surfMerge(sgm_left, tmp);     disp(MSG_INFO,"L PUTAMEN done");
-    tmp              = fsAseg2Surf(asegImg, 17);        sgm_left = surfMerge(sgm_left, tmp);     disp(MSG_INFO,"L HIPPOCAMPUS done");
-    tmp              = fsAseg2Surf(asegImg, 18);        sgm_left = surfMerge(sgm_left, tmp);     disp(MSG_INFO,"L AMYGDALA done");
-    tmp              = fsAseg2Surf(asegImg, 26);        sgm_left = surfMerge(sgm_left, tmp);     disp(MSG_INFO,"L ACCUMBENS done");
+
+    Surface sgm_left = fsAseg2Surf(labelsImg, 9);         disp(MSG_INFO,"L THALAMUS done");
+    Surface tmp      = fsAseg2Surf(labelsImg, 11);        sgm_left = surfMerge(sgm_left, tmp);     disp(MSG_INFO,"L CAUDATE done");
+    tmp              = fsAseg2Surf(labelsImg, 13);        sgm_left = surfMerge(sgm_left, tmp);     disp(MSG_INFO,"L PALLIDUM done");
+    tmp              = fsAseg2Surf(labelsImg, 12);        sgm_left = surfMerge(sgm_left, tmp);     disp(MSG_INFO,"L PUTAMEN done");
+    tmp              = fsAseg2Surf(labelsImg, 17);        sgm_left = surfMerge(sgm_left, tmp);     disp(MSG_INFO,"L HIPPOCAMPUS done");
+    tmp              = fsAseg2Surf(labelsImg, 18);        sgm_left = surfMerge(sgm_left, tmp);     disp(MSG_INFO,"L AMYGDALA done");
+    tmp              = fsAseg2Surf(labelsImg, 26);        sgm_left = surfMerge(sgm_left, tmp);     disp(MSG_INFO,"L ACCUMBENS done");
     Surface l_vdc    = fsAseg2Surf(asegImg, 28);        sgm_left = surfMerge(sgm_left, l_vdc);   disp(MSG_INFO,"L VENTRAL DIENCEPHALON done");
 
     sgm_left.write(outputFolder + "/sgm_left.vtk");
     disp(MSG_INFO,"sgm_left saved.");
 
-    Surface sgm_right = fsAseg2Surf(asegImg, 48);       disp(MSG_INFO,"R THALAMUS done");
-    tmp               = fsAseg2Surf(asegImg, 50);       sgm_right = surfMerge(sgm_right, tmp);   disp(MSG_INFO,"R CAUDATE done");
-    tmp               = fsAseg2Surf(asegImg, 52);       sgm_right = surfMerge(sgm_right, tmp);   disp(MSG_INFO,"R PALLIDUM done");
-    tmp               = fsAseg2Surf(asegImg, 51);       sgm_right = surfMerge(sgm_right, tmp);   disp(MSG_INFO,"R PUTAMEN done");
-    tmp               = fsAseg2Surf(asegImg, 53);       sgm_right = surfMerge(sgm_right, tmp);   disp(MSG_INFO,"R HIPPOCAMPUS done");
-    tmp               = fsAseg2Surf(asegImg, 54);       sgm_right = surfMerge(sgm_right, tmp);   disp(MSG_INFO,"R AMYGDALA done");
-    tmp               = fsAseg2Surf(asegImg, 58);       sgm_right = surfMerge(sgm_right, tmp);   disp(MSG_INFO,"R ACCUMBENS done");
+    Surface sgm_right = fsAseg2Surf(labelsImg, 48);       disp(MSG_INFO,"R THALAMUS done");
+    tmp               = fsAseg2Surf(labelsImg, 50);       sgm_right = surfMerge(sgm_right, tmp);   disp(MSG_INFO,"R CAUDATE done");
+    tmp               = fsAseg2Surf(labelsImg, 52);       sgm_right = surfMerge(sgm_right, tmp);   disp(MSG_INFO,"R PALLIDUM done");
+    tmp               = fsAseg2Surf(labelsImg, 51);       sgm_right = surfMerge(sgm_right, tmp);   disp(MSG_INFO,"R PUTAMEN done");
+    tmp               = fsAseg2Surf(labelsImg, 53);       sgm_right = surfMerge(sgm_right, tmp);   disp(MSG_INFO,"R HIPPOCAMPUS done");
+    tmp               = fsAseg2Surf(labelsImg, 54);       sgm_right = surfMerge(sgm_right, tmp);   disp(MSG_INFO,"R AMYGDALA done");
+    tmp               = fsAseg2Surf(labelsImg, 58);       sgm_right = surfMerge(sgm_right, tmp);   disp(MSG_INFO,"R ACCUMBENS done");
     Surface r_vdc     = fsAseg2Surf(asegImg, 60);       sgm_right = surfMerge(sgm_right, r_vdc); disp(MSG_INFO,"R VENTRAL DIENCEPHALON done");
 
     sgm_right.write(outputFolder + "/sgm_right.vtk");
@@ -271,7 +276,7 @@ void run_prep_neonatal_surf()
     disp(MSG_INFO,"seed saved.");
 
     // REQUIRE_END_INSIDE
-    disp(MSG_INFO,"Generating a combined require_end_sinside surface");
+    disp(MSG_INFO,"Generating a combined require_end_s inside surface");
     Surface req_end_inside  = surfMerge(gm, sgm);
     req_end_inside          = surfMerge(req_end_inside, cer);
     req_end_inside          = surfMerge(req_end_inside, bst);
