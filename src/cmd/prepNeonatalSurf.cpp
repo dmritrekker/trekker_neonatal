@@ -244,10 +244,12 @@ void run_prep_neonatal_surf()
 
         Surface ipsi_wm_open;
         removeVertices(&ipsi_wm_open,&ipsi_wm_closed, &midLineMask);
+        ipsi_wm_open = surfRepair(ipsi_wm_open);
         ipsi_wm_open = surfMakeItSingleOpen(ipsi_wm_open);
 
         Surface ipsi_gm_open;
         removeVertices(&ipsi_gm_open,&ipsi_gm_closed, &midLineMask);
+        ipsi_gm_open = surfRepair(ipsi_gm_open);
         ipsi_gm_open = surfMakeItSingleOpen(ipsi_gm_open);
 
         Surface gm_ribbon = surfGlueBoundaries(ipsi_wm_open, ipsi_gm_open);
